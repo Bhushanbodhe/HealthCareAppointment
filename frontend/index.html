@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediBook – Healthcare Appointment Booking</title>
+  <meta name="description" content="Book healthcare appointments online. Connect with top doctors across all specializations." />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Auth Page -->
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px;">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🏥</div>
+          <h1>MediBook</h1>
+        </div>
+        <p>Your trusted healthcare appointment partner</p>
+      </div>
+
+      <!-- Alert -->
+      <div id="loginAlert" class="alert hidden"></div>
+
+      <!-- Login Card -->
+      <div class="auth-card card" id="loginCard">
+        <h2 style="font-size:1.5rem;margin-bottom:6px;">Welcome back</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:28px;">Sign in to manage your appointments</p>
+
+        <form id="loginForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" class="form-input" placeholder="doctor@example.com" required />
+            <div class="form-error" id="emailError">Please enter a valid email</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required />
+            <div class="form-error" id="passwordError">Password is required</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+            <span id="loginBtnText">Sign In</span>
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Don't have an account? <a href="register.html">Create one</a>
+        </div>
+
+        <hr class="divider" />
+        <div style="text-align:center;">
+          <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;">Demo Credentials</p>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <button onclick="fillDemo('admin@health.com','admin123')" class="btn btn-outline btn-sm">👑 Admin Login</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check if already logged in
+    fetch('/api/me').then(r => {
+      if (r.ok) return r.json();
+      throw new Error('Not authenticated');
+    }).then(user => {
+      if (user.role === 'admin') window.location.href = 'admin.html';
+      else window.location.href = 'dashboard.html';
+    }).catch(() => {});
+
+    function fillDemo(email, pass) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = pass;
+    }
+
+    function showAlert(msg, type) {
+      const el = document.getElementById('loginAlert');
+      el.className = `alert alert-${type}`;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn      = document.getElementById('loginBtn');
+
+      // Client-side validation
+      let valid = true;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        document.getElementById('loginEmail').classList.add('error');
+        document.getElementById('emailError').style.display = 'block';
+        valid = false;
+      } else {
+        document.getElementById('loginEmail').classList.remove('error');
+        document.getElementById('emailError').style.display = 'none';
+      }
+      if (!password) {
+        document.getElementById('loginPassword').classList.add('error');
+        document.getElementById('passwordError').style.display = 'block';
+        valid = false;
+      } else {
+        document.getElementById('loginPassword').classList.remove('error');
+        document.getElementById('passwordError').style.display = 'none';
+      }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px;"></div>';
+
+      try {
+        const res  = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert('Login successful! Redirecting…', 'success');
+          setTimeout(() => {
+            if (data.role === 'admin') window.location.href = 'admin.html';
+            else window.location.href = 'dashboard.html';
+          }, 800);
+        } else {
+          showAlert(data.error || 'Login failed.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = 'Sign In';
+        }
+      } catch {
+        showAlert('Server error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

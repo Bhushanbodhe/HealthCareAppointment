@@ -1,0 +1,121 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin",
+      "email": "admin@health.com",
+      "phone": "9999999999",
+      "password": "$2a$10$uj68cwbIF6vR4parqeAkm.HxmpyCjbhylIKFKegHJNTGNGsx939Wy",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Bhushan",
+      "email": "bhushan.bodhe.bca@ghrietn.raisoni.net",
+      "phone": "9322391028",
+      "password": "$2a$10$717aV.OXaj4v0MnX4RC/aeq1Zd/hxVDzbPTRYR/HHvo5GmTIQ2Ap2",
+      "role": "patient"
+    },
+    {
+      "id": 3,
+      "name": "atharva",
+      "email": "atharva@gmail.com",
+      "phone": "8202665355",
+      "password": "$2a$10$F7iTTUF/K/cE0QjzWgu2m.Ufj8hyW72Pn29BEJ8PSh3ITqTskP722",
+      "role": "patient"
+    }
+  ],
+  "doctors": [
+    {
+      "id": 1,
+      "name": "Dr. Priya Sharma",
+      "specialization": "Cardiologist",
+      "experience": 14,
+      "rating": 4.9,
+      "available_slots": "[\"09:00 AM\",\"10:00 AM\",\"11:00 AM\",\"02:00 PM\",\"03:00 PM\"]",
+      "bio": "Experienced cardiologist.",
+      "avatar_color": "#ef4444"
+    },
+    {
+      "id": 2,
+      "name": "Dr. Rahul Mehta",
+      "specialization": "Neurologist",
+      "experience": 11,
+      "rating": 4.8,
+      "available_slots": "[\"10:00 AM\",\"11:30 AM\",\"01:00 PM\",\"03:30 PM\",\"04:30 PM\"]",
+      "bio": "Neurological specialist.",
+      "avatar_color": "#8b5cf6"
+    },
+    {
+      "id": 3,
+      "name": "Dr. Anita Desai",
+      "specialization": "Dermatologist",
+      "experience": 9,
+      "rating": 4.7,
+      "available_slots": "[\"09:30 AM\",\"10:30 AM\",\"12:00 PM\",\"02:30 PM\",\"04:00 PM\"]",
+      "bio": "Skin health expert.",
+      "avatar_color": "#f59e0b"
+    },
+    {
+      "id": 4,
+      "name": "Dr. Sanjay Patel",
+      "specialization": "Orthopedist",
+      "experience": 16,
+      "rating": 4.9,
+      "available_slots": "[\"08:00 AM\",\"09:00 AM\",\"11:00 AM\",\"01:00 PM\",\"03:00 PM\"]",
+      "bio": "Joint specialist.",
+      "avatar_color": "#10b981"
+    },
+    {
+      "id": 5,
+      "name": "Dr. Meera Nair",
+      "specialization": "Pediatrician",
+      "experience": 8,
+      "rating": 4.8,
+      "available_slots": "[\"09:00 AM\",\"10:00 AM\",\"11:30 AM\",\"02:00 PM\",\"04:00 PM\"]",
+      "bio": "Child care expert.",
+      "avatar_color": "#3b82f6"
+    },
+    {
+      "id": 6,
+      "name": "Dr. Vikram Singh",
+      "specialization": "Psychiatrist",
+      "experience": 12,
+      "rating": 4.7,
+      "available_slots": "[\"10:00 AM\",\"11:00 AM\",\"01:30 PM\",\"03:00 PM\",\"05:00 PM\"]",
+      "bio": "Mental health specialist.",
+      "avatar_color": "#6366f1"
+    },
+    {
+      "id": 7,
+      "name": "Dr. Kavya Reddy",
+      "specialization": "Gynecologist",
+      "experience": 13,
+      "rating": 4.9,
+      "available_slots": "[\"09:00 AM\",\"10:30 AM\",\"12:00 PM\",\"02:00 PM\",\"04:00 PM\"]",
+      "bio": "Women's health expert.",
+      "avatar_color": "#ec4899"
+    },
+    {
+      "id": 8,
+      "name": "Dr. Arjun Kumar",
+      "specialization": "General Physician",
+      "experience": 7,
+      "rating": 4.6,
+      "available_slots": "[\"08:30 AM\",\"09:30 AM\",\"11:00 AM\",\"01:30 PM\",\"03:30 PM\"]",
+      "bio": "Primary care doctor.",
+      "avatar_color": "#0ea5e9"
+    }
+  ],
+  "appointments": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "doctor_id": 1,
+      "date": "2026-12-04",
+      "time_slot": "10:00 AM",
+      "status": "cancelled",
+      "created_at": "2026-03-17T05:57:11.767Z"
+    }
+  ]
+}

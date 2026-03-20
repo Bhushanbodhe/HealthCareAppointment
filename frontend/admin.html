@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel – MediBook</title>
+  <meta name="description" content="Admin panel to manage doctors and view system statistics." />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="admin.html">
+        <div class="brand-icon">🏥</div>
+        MediBook <span style="font-size:0.7rem;background:var(--primary);color:#fff;padding:2px 8px;border-radius:4px;margin-left:4px;">ADMIN</span>
+      </a>
+      <ul class="navbar-nav" id="navMenu">
+        <li><a href="admin.html" class="active">📊 Dashboard</a></li>
+        <li><a href="dashboard.html">🔍 Patient View</a></li>
+        <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+      </ul>
+      <div class="navbar-user" id="navUser" style="display:none;">
+        <div class="user-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706);">A</div>
+        <span style="font-size:0.9rem;font-weight:600;">Admin</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  <div class="container admin-page">
+
+    <div class="page-header">
+      <h1>👑 Admin Dashboard</h1>
+      <p>Manage doctors, view system stats, and monitor appointments</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="card stat-card"><div class="stat-icon">👨‍⚕️</div><div class="stat-num" id="statDocs">—</div><div class="stat-lbl">Total Doctors</div></div>
+      <div class="card stat-card"><div class="stat-icon">🧑‍🤝‍🧑</div><div class="stat-num" id="statPatients">—</div><div class="stat-lbl">Registered Patients</div></div>
+      <div class="card stat-card"><div class="stat-icon">📅</div><div class="stat-num" id="statAppts">—</div><div class="stat-lbl">Total Appointments</div></div>
+      <div class="card stat-card"><div class="stat-icon">🔥</div><div class="stat-num" id="statToday">—</div><div class="stat-lbl">Today's Appointments</div></div>
+    </div>
+
+    <!-- Doctors Table -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <h2 style="font-size:1.4rem;">👨‍⚕️ Manage Doctors</h2>
+      <button class="btn btn-primary" onclick="openDoctorModal()">➕ Add New Doctor</button>
+    </div>
+
+    <div id="tableLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p style="color:var(--text-muted);margin-top:8px;">Loading doctors…</p>
+    </div>
+
+    <div class="admin-table-wrap hidden" id="tableWrap">
+      <table class="admin-table" id="doctorsTable">
+        <thead>
+          <tr>
+            <th>Doctor</th>
+            <th>Specialization</th>
+            <th>Experience</th>
+            <th>Rating</th>
+            <th>Slots</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="doctorsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add/Edit Doctor Modal -->
+  <div class="modal-overlay" id="doctorModal">
+    <div class="modal" style="max-width:580px;overflow-y:auto;max-height:90vh;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Add New Doctor</h2>
+        <button class="modal-close" onclick="closeDoctorModal()">✕</button>
+      </div>
+
+      <div id="modalAlert" class="alert hidden" style="margin-bottom:16px;"></div>
+
+      <form id="doctorForm" novalidate>
+        <input type="hidden" id="editDoctorId" />
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Full Name *</label>
+            <input type="text" id="dName" class="form-input" placeholder="Dr. Jane Smith" required />
+            <div class="form-error" id="dNameErr">Name is required</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Specialization *</label>
+            <input type="text" id="dSpec" class="form-input" placeholder="Cardiologist" required />
+            <div class="form-error" id="dSpecErr">Specialization is required</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Experience (years)</label>
+            <input type="number" id="dExp" class="form-input" placeholder="10" min="0" max="60" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Rating (0–5)</label>
+            <input type="number" id="dRating" class="form-input" placeholder="4.8" min="0" max="5" step="0.1" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Avatar Color</label>
+            <input type="color" id="dColor" class="form-input" value="#0ea5e9" style="height:48px;padding:4px;cursor:pointer;" />
+          </div>
+
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Available Time Slots * <span style="color:var(--text-dim);font-size:0.75rem;">(comma separated)</span></label>
+            <input type="text" id="dSlots" class="form-input" placeholder="09:00 AM, 10:00 AM, 02:00 PM" required />
+            <div class="form-error" id="dSlotsErr">At least one time slot is required</div>
+          </div>
+
+          <div class="form-group" style="grid-column:1/-1;">
+            <label class="form-label">Bio / Description</label>
+            <textarea id="dBio" class="form-input" rows="3" placeholder="Brief description about the doctor…" style="resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeDoctorModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex:2;" id="saveBtn">💾 Save Doctor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Delete Doctor?</h2>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <p style="color:var(--text-muted);margin-bottom:28px;">This will permanently delete the doctor and prevent future bookings. Existing appointments remain unaffected.</p>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="deleteConfirmed()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let deleteTargetId = null;
+
+    // ── Auth guard (admin only) ────────────────────────────────────────────────
+    async function checkAuth() {
+      try {
+        const res  = await fetch('/api/me');
+        if (!res.ok) { window.location.href = 'index.html'; return; }
+        const user = await res.json();
+        if (user.role !== 'admin') { window.location.href = 'dashboard.html'; return; }
+        document.getElementById('navUser').style.display = 'flex';
+      } catch { window.location.href = 'index.html'; }
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+      document.getElementById('toastContainer').appendChild(t);
+      setTimeout(() => { t.style.animation = 'toastOut 0.4s forwards'; setTimeout(() => t.remove(), 400); }, 3500);
+    }
+
+    // ── Load Stats ─────────────────────────────────────────────────────────────
+    async function loadStats() {
+      const res  = await fetch('/api/admin/stats');
+      const data = await res.json();
+      document.getElementById('statDocs').textContent     = data.totalDoctors;
+      document.getElementById('statPatients').textContent = data.totalPatients;
+      document.getElementById('statAppts').textContent    = data.totalAppointments;
+      document.getElementById('statToday').textContent    = data.todayAppts;
+    }
+
+    // ── Load Doctors Table ─────────────────────────────────────────────────────
+    async function loadDoctors() {
+      const res     = await fetch('/api/admin/doctors');
+      const doctors = await res.json();
+
+      document.getElementById('tableLoading').classList.add('hidden');
+      document.getElementById('tableWrap').classList.remove('hidden');
+      const tbody = document.getElementById('doctorsTbody');
+
+      tbody.innerHTML = doctors.map(d => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:40px;height:40px;border-radius:12px;background:${d.avatar_color};display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;">
+                ${d.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+              </div>
+              <div>
+                <div style="font-weight:600;">${d.name}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">ID: ${d.id}</div>
+              </div>
+            </div>
+          </td>
+          <td><span style="color:var(--primary);font-weight:500;">${d.specialization}</span></td>
+          <td>${d.experience} yrs</td>
+          <td>⭐ ${d.rating}</td>
+          <td><span style="font-size:0.8rem;color:var(--text-muted);">${d.available_slots.slice(0,2).join(', ')}${d.available_slots.length > 2 ? ` +${d.available_slots.length - 2} more` : ''}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="btn btn-outline btn-sm" onclick="openEditModal(${d.id})">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${d.id})">🗑️ Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    let allDoctorsCache = [];
+    async function getAllDoctors() {
+      const res = await fetch('/api/admin/doctors');
+      allDoctorsCache = await res.json();
+    }
+
+    // ── Add Doctor Modal ───────────────────────────────────────────────────────
+    function openDoctorModal() {
+      document.getElementById('modalTitle').textContent = 'Add New Doctor';
+      document.getElementById('editDoctorId').value = '';
+      document.getElementById('doctorForm').reset();
+      document.getElementById('dColor').value = '#0ea5e9';
+      document.getElementById('modalAlert').classList.add('hidden');
+      document.getElementById('doctorModal').classList.add('open');
+    }
+
+    async function openEditModal(id) {
+      await getAllDoctors();
+      const doc = allDoctorsCache.find(d => d.id === id);
+      if (!doc) return;
+
+      document.getElementById('modalTitle').textContent = 'Edit Doctor';
+      document.getElementById('editDoctorId').value = id;
+      document.getElementById('dName').value   = doc.name;
+      document.getElementById('dSpec').value   = doc.specialization;
+      document.getElementById('dExp').value    = doc.experience;
+      document.getElementById('dRating').value = doc.rating;
+      document.getElementById('dSlots').value  = doc.available_slots.join(', ');
+      document.getElementById('dBio').value    = doc.bio;
+      document.getElementById('dColor').value  = doc.avatar_color;
+      document.getElementById('modalAlert').classList.add('hidden');
+      document.getElementById('doctorModal').classList.add('open');
+    }
+
+    function closeDoctorModal() { document.getElementById('doctorModal').classList.remove('open'); }
+
+    // ── Save Doctor ────────────────────────────────────────────────────────────
+    document.getElementById('doctorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id     = document.getElementById('editDoctorId').value;
+      const name   = document.getElementById('dName').value.trim();
+      const spec   = document.getElementById('dSpec').value.trim();
+      const exp    = document.getElementById('dExp').value;
+      const rating = document.getElementById('dRating').value;
+      const slots  = document.getElementById('dSlots').value.trim();
+      const bio    = document.getElementById('dBio').value.trim();
+      const color  = document.getElementById('dColor').value;
+
+      let valid = true;
+      const checks = [
+        [!name, 'dName', 'dNameErr'],
+        [!spec, 'dSpec', 'dSpecErr'],
+        [!slots, 'dSlots', 'dSlotsErr']
+      ];
+      checks.forEach(([fail, inputId, errId]) => {
+        document.getElementById(inputId).classList.toggle('error', fail);
+        document.getElementById(errId).style.display = fail ? 'block' : 'none';
+        if (fail) valid = false;
+      });
+      if (!valid) return;
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const slotArr = slots.split(',').map(s => s.trim()).filter(Boolean);
+      const body = { name, specialization: spec, experience: exp||0, rating: rating||4.5, available_slots: slotArr, bio, avatar_color: color };
+
+      try {
+        const url = id ? `/api/admin/doctors/${id}` : '/api/admin/doctors';
+        const method = id ? 'PUT' : 'POST';
+        const res  = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+
+        if (res.ok) {
+          closeDoctorModal();
+          showToast(data.message, 'success');
+          loadDoctors();
+          loadStats();
+        } else {
+          const alertEl = document.getElementById('modalAlert');
+          alertEl.className = 'alert alert-error';
+          alertEl.textContent = '❌ ' + data.error;
+          alertEl.classList.remove('hidden');
+        }
+      } catch {
+        showToast('Server error.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Save Doctor';
+      }
+    });
+
+    // ── Delete ─────────────────────────────────────────────────────────────────
+    function openDeleteModal(id) { deleteTargetId = id; document.getElementById('deleteModal').classList.add('open'); }
+    function closeDeleteModal()  { document.getElementById('deleteModal').classList.remove('open'); deleteTargetId = null; }
+
+    async function deleteConfirmed() {
+      if (!deleteTargetId) return;
+      try {
+        const res  = await fetch(`/api/admin/doctors/${deleteTargetId}`, { method: 'DELETE' });
+        const data = await res.json();
+        closeDeleteModal();
+        if (res.ok) {
+          showToast('Doctor deleted.', 'info');
+          loadDoctors();
+          loadStats();
+        } else {
+          showToast(data.error || 'Failed to delete.', 'error');
+        }
+      } catch { showToast('Server error.', 'error'); }
+    }
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    }
+
+    // Close modals on overlay click
+    ['doctorModal', 'deleteModal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', e => {
+        if (e.target.id === id) { id === 'doctorModal' ? closeDoctorModal() : closeDeleteModal(); }
+      });
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    checkAuth().then(() => { loadStats(); loadDoctors(); });
+  </script>
+</body>
+</html>

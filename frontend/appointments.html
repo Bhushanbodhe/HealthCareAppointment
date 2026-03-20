@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Appointments – MediBook</title>
+  <meta name="description" content="View your upcoming and past healthcare appointments." />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="dashboard.html">
+        <div class="brand-icon">🏥</div>
+        MediBook
+      </a>
+      <button class="hamburger" id="hamburger" onclick="toggleNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="navbar-nav" id="navMenu">
+        <li><a href="dashboard.html">🔍 Find Doctors</a></li>
+        <li><a href="appointments.html" class="active">📅 My Appointments</a></li>
+        <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+      </ul>
+      <div class="navbar-user" id="navUser" style="display:none;">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span id="userName" style="font-size:0.9rem;font-weight:600;"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="container">
+    <div class="page-header">
+      <h1>📅 My Appointments</h1>
+      <p>View and manage your upcoming and past appointments</p>
+    </div>
+  </div>
+
+  <!-- Appointments Section -->
+  <div class="container appointments-page">
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" id="tabUpcoming" onclick="switchTab('upcoming')">🔵 Upcoming</button>
+      <button class="tab-btn" id="tabPast"     onclick="switchTab('past')">⚪ Past</button>
+      <button class="tab-btn" id="tabCancelled" onclick="switchTab('cancelled')">🔴 Cancelled</button>
+    </div>
+
+    <!-- Appointment Lists -->
+    <div id="loadingState" class="loading-state">
+      <div class="spinner"></div>
+      <p style="color:var(--text-muted);margin-top:8px;">Loading appointments…</p>
+    </div>
+
+    <div id="apptContainer" class="hidden">
+      <div class="appt-list" id="upcomingList"></div>
+      <div class="appt-list hidden" id="pastList"></div>
+      <div class="appt-list hidden" id="cancelledList"></div>
+    </div>
+
+    <div id="newBookingCTA" style="text-align:center;margin-top:32px;">
+      <a href="dashboard.html" class="btn btn-primary">
+        ➕ Book New Appointment
+      </a>
+    </div>
+  </div>
+
+  <!-- Cancel Confirmation Modal -->
+  <div class="modal-overlay" id="cancelModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Cancel Appointment?</h2>
+        <button class="modal-close" onclick="closeCancelModal()">✕</button>
+      </div>
+      <p style="color:var(--text-muted);margin-bottom:28px;">This action cannot be undone. Are you sure you want to cancel this appointment?</p>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="closeCancelModal()">Keep It</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="cancelConfirmed()">Yes, Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allAppointments = [];
+    let cancelTargetId  = null;
+    let currentTab      = 'upcoming';
+
+    // ── Auth ───────────────────────────────────────────────────────────────────
+    async function checkAuth() {
+      try {
+        const res  = await fetch('/api/me');
+        if (!res.ok) { window.location.href = 'index.html'; return; }
+        const user = await res.json();
+        document.getElementById('navUser').style.display  = 'flex';
+        document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+        document.getElementById('userName').textContent   = user.name.split(' ')[0];
+      } catch { window.location.href = 'index.html'; }
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+      document.getElementById('toastContainer').appendChild(t);
+      setTimeout(() => { t.style.animation = 'toastOut 0.4s forwards'; setTimeout(() => t.remove(), 400); }, 3500);
+    }
+
+    // ── Load Appointments ──────────────────────────────────────────────────────
+    async function loadAppointments() {
+      try {
+        const res = await fetch('/api/appointments');
+        if (!res.ok) { window.location.href = 'index.html'; return; }
+        allAppointments = await res.json();
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('apptContainer').classList.remove('hidden');
+        renderAll();
+      } catch {
+        document.getElementById('loadingState').innerHTML = '<p style="color:var(--danger);text-align:center;">Failed to load appointments.</p>';
+      }
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function renderList(containerId, items, status) {
+      const el = document.getElementById(containerId);
+      if (!items.length) {
+        const emptyMsgs = {
+          upcoming:  { icon: '📅', text: 'No upcoming appointments', sub: 'Browse our doctors and book your next appointment.' },
+          past:      { icon: '📋', text: 'No past appointments',     sub: 'Your appointment history will appear here.' },
+          cancelled: { icon: '🚫', text: 'No cancelled appointments', sub: 'You have not cancelled any appointments.' }
+        };
+        const m = emptyMsgs[status];
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">${m.icon}</div>
+            <h3>${m.text}</h3>
+            <p>${m.sub}</p>
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = items.map(a => `
+        <div class="card appt-card" id="appt-${a.id}">
+          <div class="appt-info">
+            <div class="appt-avatar" style="background:${a.avatar_color};">
+              ${a.doctor_name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+            </div>
+            <div class="appt-details">
+              <h3>${a.doctor_name}</h3>
+              <p>${a.specialization}</p>
+              <p style="margin-top:4px;color:var(--text);">
+                <strong>📆 ${formatDate(a.date)}</strong> at <strong>🕐 ${a.time_slot}</strong>
+              </p>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+            <span class="appt-badge badge-${a.status}">${a.status.toUpperCase()}</span>
+            ${a.status === 'upcoming' ? `
+              <button class="btn btn-danger btn-sm" onclick="openCancelModal(${a.id})">🚫 Cancel</button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAll() {
+      const upcoming  = allAppointments.filter(a => a.status === 'upcoming');
+      const past      = allAppointments.filter(a => a.status === 'past');
+      const cancelled = allAppointments.filter(a => a.status === 'cancelled');
+      renderList('upcomingList',  upcoming,  'upcoming');
+      renderList('pastList',      past,      'past');
+      renderList('cancelledList', cancelled, 'cancelled');
+
+      // Update tab labels with counts
+      document.getElementById('tabUpcoming').textContent  = `🔵 Upcoming (${upcoming.length})`;
+      document.getElementById('tabPast').textContent      = `⚪ Past (${past.length})`;
+      document.getElementById('tabCancelled').textContent = `🔴 Cancelled (${cancelled.length})`;
+    }
+
+    // ── Tabs ───────────────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      currentTab = tab;
+      ['upcoming', 'past', 'cancelled'].forEach(t => {
+        document.getElementById(t + 'List').classList.toggle('hidden', t !== tab);
+        document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+      });
+    }
+
+    // ── Cancel ─────────────────────────────────────────────────────────────────
+    function openCancelModal(id) {
+      cancelTargetId = id;
+      document.getElementById('cancelModal').classList.add('open');
+    }
+    function closeCancelModal() {
+      document.getElementById('cancelModal').classList.remove('open');
+      cancelTargetId = null;
+    }
+
+    async function cancelConfirmed() {
+      if (!cancelTargetId) return;
+      try {
+        const res  = await fetch(`/api/appointments/${cancelTargetId}`, { method: 'DELETE' });
+        const data = await res.json();
+        closeCancelModal();
+        if (res.ok) {
+          showToast('Appointment cancelled.', 'info');
+          allAppointments = allAppointments.map(a => a.id === cancelTargetId ? {...a, status: 'cancelled'} : a);
+          renderAll();
+        } else {
+          showToast(data.error || 'Failed to cancel.', 'error');
+        }
+      } catch {
+        showToast('Server error.', 'error');
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    }
+
+    function toggleNav() { document.getElementById('navMenu').classList.toggle('open'); }
+
+    document.getElementById('cancelModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('cancelModal')) closeCancelModal();
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    checkAuth();
+    loadAppointments();
+  </script>
+</body>
+</html>

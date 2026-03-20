@@ -1,0 +1,19 @@
+{
+  "name": "healthcare-appointment",
+  "version": "1.0.0",
+  "description": "Healthcare Appointment Booking System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3"
+  },
+  "keywords": ["healthcare", "appointment", "booking"],
+  "author": "",
+  "license": "ISC"
+}
